@@ -37,9 +37,11 @@ func main () {
 	flag.Parse()
 
 	args := flag.Args()
-	// if len(args) > 2 {
-	// 	fmt.Errorf("> 2 args")
-	// }
+	if len(args) > 2 {
+		fmt.Printf(`Error: maximum 2 arguments can be:
+					inputFile and outFile, but got %d`, len(args))
+		return
+	}
 	var inFilePath, outFilePath string
 	if len(args) >= 1 {
 		inFilePath = args[0]
@@ -58,11 +60,11 @@ func main () {
 	}
 
 	var reader io.Reader
-	if len(inFilePath) > 0 {  // path isn't empty
-		var err error	
-		reader, err = os.Open(inFilePath)
+	if len(inFilePath) > 0 {  // path isn't empty	
+		file, err := os.Open(inFilePath)
 		check(err)
-		// defer reader.Close()
+		defer file.Close()
+		reader = file
 	} else {
 		reader = os.Stdin
 		fmt.Println("Hint: To stop the input press Ctrl + C")
@@ -73,7 +75,9 @@ func main () {
 	for scanner.Scan() {
 		rows = append(rows, scanner.Text())
 	}
-	// check errors
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error: while reading ", err)
+	} 
 
 	if DEBUG {
 		fmt.Println("-c: ", *cFlag)
@@ -89,18 +93,19 @@ func main () {
 
 	result, _ := uniqutils.Uniq(rows, options) 
 	
-	var writer io.Writer
+	var outStream io.Writer
 	if len(outFilePath) > 0 {
-		writer, err := os.Create(outFilePath)  // creates file if doesn't exist
+		file, err := os.Create(outFilePath)  // creates file if doesn't exist
 		check(err)
-		defer writer.Close()
+		defer file.Close()
+		outStream = file
 	} else {
-		writer = os.Stdout
+		outStream = os.Stdout
 	}
-	writer_ := bufio.NewWriter(writer) // rename!!!
+	writer := bufio.NewWriter(outStream)
 
 	for _, line := range result {
-		_, err := writer_.WriteString(line)
+		_, err := writer.WriteString(line)
 		check(err)
 	}
 	

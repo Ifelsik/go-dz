@@ -83,6 +83,10 @@ func isOptionsValid(options Options) bool {
 }
 
 func skipFieldsInRow(row []rune, numField int) []rune {
+	if (numField == 0) {  // no fields nom provide, just return unmodified row
+		return row
+	}
+
 	fields := 0
 	indexAfterSkippedFields := 0
 	for i, r := range row {
@@ -104,18 +108,19 @@ func skipRunesInRow(row []rune, numRune int) []rune {
 }
 
 func formPointerToResultRow(options Options, previousRow []rune, rowEqualsCount int) *string {
-	if ! (options.FlagC || options.FlagD || options.FlagU) {
+	switch {
+	case ! (options.FlagC || options.FlagD || options.FlagU):
 		row := string(previousRow)
 		return &row
-	} else if options.FlagC {
-		row := fmt.Sprintf("%d %s\n", rowEqualsCount, string(previousRow))
+	case options.FlagC:
+		row := fmt.Sprintf("%d %s", rowEqualsCount, string(previousRow))
 		return &row
-	} else if options.FlagD && rowEqualsCount > 1 {  // Flag -d. Only repeated rows
+	case options.FlagD && rowEqualsCount > 1: // Flag -d. Only repeated rows
 		row := string(previousRow)
 		return &row
-	} else if options.FlagU && rowEqualsCount == 1 {  // Flag -u. Only unique rows
+	case options.FlagU && rowEqualsCount == 1 :  // Flag -u. Only unique rows
 		row := string(previousRow)
 		return &row
-	}
+	}	
 	return nil
 }
