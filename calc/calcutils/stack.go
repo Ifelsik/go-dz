@@ -10,7 +10,7 @@ type Stack interface {
 }
 
 type sliceStack struct {
-	elements []interface{}
+	elements []string
 	top      int
 }
 
@@ -18,7 +18,7 @@ func NewStack() *sliceStack {
 	return &sliceStack{top: -1}
 }
 
-func (s *sliceStack) Push(val interface{}) error {
+func (s *sliceStack) Push(val string) error {
 	if len(s.elements) == cap(s.elements) {
 		s.elements = append(s.elements, val)
 		s.top++
@@ -30,9 +30,9 @@ func (s *sliceStack) Push(val interface{}) error {
 	return nil
 }
 
-func (s *sliceStack) Pop() (interface{}, error) {
+func (s *sliceStack) Pop() (string, error) {
 	if s.IsEmpty() {
-		return nil, nil
+		return "", nil
 	}
 
 	top := s.top
@@ -40,9 +40,9 @@ func (s *sliceStack) Pop() (interface{}, error) {
 	return s.elements[top], nil
 }
 
-func (s *sliceStack) Top() (interface{}, error) {
+func (s *sliceStack) Top() (string, error) {
 	if s.IsEmpty() {
-		return nil, fmt.Errorf("stack is empty")
+		return "", fmt.Errorf("stack is empty")
 	}
 	return s.elements[s.top], nil
 }
