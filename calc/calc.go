@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 
-	result, err := calcutils.Calc(args[0])
+	result, err := calcutils.Calc(args[1])
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

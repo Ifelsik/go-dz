@@ -13,6 +13,7 @@ func Calc(expression string) (float64, error) {
 	if !isValidExpression(expression) {
 		return 0, fmt.Errorf("validation error")
 	}
+	// expression = strings.ReplaceAll(expression, " ", "")  // deletes spaces
 
 	re := regexp.MustCompile(`\d+|[+*/()-]`)
     expressionTokenized := re.FindAllString(expression, -1)
