@@ -10,7 +10,7 @@ func ConvertToRPN(expression []string) ([]string, error) {
 	result := []string{}
 	stack := NewStack()
 	for _, str := range expression {
-		if _, err:= strconv.Atoi(str); err == nil {  // got a number, just add it to result
+		if _, err:= strconv.ParseFloat(str, 64); err == nil {  // got a number, just add it to result
 			result = append(result, str)
 			continue
 		}
@@ -20,8 +20,10 @@ func ConvertToRPN(expression []string) ([]string, error) {
 
 			currentPriority, _ := getOperandPriority(str)
 			topPriority, _ 	   := getOperandPriority(top)
+
+			isBracketsEnd := str == ")"
 			
-			for (top == ")" ) || (topPriority <= currentPriority && top != "(" ) {  // top priority equals or higher than current 
+			for isBracketsEnd || (topPriority <= currentPriority && top != "(" ) {  // top priority equals or higher than current
 				result = append(result, top)
 
 				stack.Pop()
@@ -34,11 +36,17 @@ func ConvertToRPN(expression []string) ([]string, error) {
 				}
 
 				topPriority, _ = getOperandPriority(top)
+
+				if top == "(" {
+					stack.Pop()
+					isBracketsEnd = false
+				}
 			}
 		}
 
-		stack.Push(str)
-
+		if str != ")" {
+			stack.Push(str)
+		}
 	}
 
 	for !stack.IsEmpty() {
@@ -76,3 +84,4 @@ func getOperandPriority(op string) (int8, error) {
 
 	return priority, err
 }
+

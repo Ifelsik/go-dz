@@ -12,27 +12,29 @@ type Stack interface {
 type sliceStack struct {
 	elements []string
 	top      int
+	size	 int
 }
 
 func NewStack() *sliceStack {
-	return &sliceStack{top: -1}
+	return &sliceStack{elements: make([]string, 1), top: -1, size: 1}
 }
 
 func (s *sliceStack) Push(val string) error {
-	if len(s.elements) == cap(s.elements) {
-		s.elements = append(s.elements, val)
-		s.top++
-		return nil
+	if len(s.elements) == s.size {
+		s.size *= 2
+		tmp := s.elements
+		s.elements = make([]string, s.size)
+		copy(s.elements, tmp)
 	}
 
-	s.elements[s.top] = val
 	s.top++
+	s.elements[s.top] = val
 	return nil
 }
 
 func (s *sliceStack) Pop() (string, error) {
 	if s.IsEmpty() {
-		return "", nil
+		return "", fmt.Errorf("stack is empty")
 	}
 
 	top := s.top
