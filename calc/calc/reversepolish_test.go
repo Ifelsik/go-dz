@@ -25,6 +25,15 @@ var testsOK = map[string] struct {
 		input: []string{"1", "+", "(", "2", "+", "(", "3", "+", "4", ")", "*", "5", "+", "6", ")", "+", "7"},
 		expected: []string{"1", "2", "3", "4", "+", "5", "*", "+", "6", "+", "+", "7", "+"},
 	},
+	"-3+7": {
+		input: []string{"-", "3", "+", "7"},
+		expected: []string{"0", "3", "-", "7", "+"},
+	},
+	"-(-(5+3)*3+(-1))": {
+		input: []string{"-", "(", "-", "(", "5", "+", "3", ")", "*", "3", "+", "(", "-", "1", ")", ")"},
+		expected: []string{"0", "0", "5", "3", "+", "3", "*", "-", "0", "1", "-", "+", "-"},
+	},
+	
 }
 
 func TestConvertToRPNOK(t *testing.T) {
@@ -32,7 +41,7 @@ func TestConvertToRPNOK(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got, err := ConvertToRPN(test.input)
 			require.Equal(t, nil, err,
-				"Test %q. Got an error %v", name, err)
+				"Test %q. Got an error: %v", name, err)
 			require.Equal(t, test.expected, got,
 				"Test %q returned %v; expected %v", name, got, test.expected)
 		})

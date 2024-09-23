@@ -27,6 +27,14 @@ var testsOk = []struct{
 		input: "1 + (2+ (3 +4)*5 +6)+ 7",
 		expected: 51,
 	},
+	{
+		input: "-10 + 3",
+		expected: -7,
+	},
+	{
+		input: "-(-11-(1*20/2)-11/2*3)",
+		expected: 37.5,
+	},
 }
 
 func TestCalc(t *testing.T) {
@@ -34,7 +42,7 @@ func TestCalc(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d: ", i), func(t *testing.T) {
 			got, err := Calc(test.input)
 			require.Equal(t, nil, err,
-				"Test %q. Got an error %v", test.input, err)
+				"Test %q. Got an error: %v", test.input, err)
 			require.Equal(t, test.expected, got,
 				"Test %q returned %f; expected %f", test.input, got, test.expected)
 		})

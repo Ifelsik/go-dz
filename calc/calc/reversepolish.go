@@ -7,8 +7,24 @@ import (
 )
 
 func ConvertToRPN(expression []string) ([]string, error) {
+	var temp []string
+	var strPrev string
+	// reformats unary '-' into binary. Just add '0' before unary minus
+	// e.x. converts -(-(5+3)*3)) to 0-(0-(5+3)*3)
+	for _, str := range expression {
+		// recognize type of minus. If unary adding '0' before
+		if str == "-" && (strPrev == "" || strPrev == "(") {
+			temp = append(temp, "0")
+		}
+		temp = append(temp, str)
+		strPrev = str
+	}
+	expression = temp
+
+
 	result := []string{}
 	stack := NewStack()
+
 	for _, str := range expression {
 		if _, err:= strconv.ParseFloat(str, 64); err == nil {  // got a number, just add it to result
 			result = append(result, str)
@@ -37,7 +53,9 @@ func ConvertToRPN(expression []string) ([]string, error) {
 
 				topPriority, _ = getOperandPriority(top)
 
-				if top == "(" {
+				// if have reached ')', then pop from stack until find opening bracket
+				// when found if, just pop '(' 
+				if isBracketsEnd && top == "(" {
 					stack.Pop()
 					isBracketsEnd = false
 				}
