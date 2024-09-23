@@ -1,7 +1,7 @@
 package main
 
 import (
-	"calc/calcutils"
+	"calc/calc"
 	"fmt"
 	"os"
 )
@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 
-	result, err := calcutils.Calc(args[1])
+	result, err := calc.Calc(args[1])
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

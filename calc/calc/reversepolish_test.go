@@ -1,4 +1,4 @@
-package calcutils
+package calc
 
 import (
 	"testing"
@@ -30,7 +30,9 @@ var testsOK = map[string] struct {
 func TestConvertToRPNOK(t *testing.T) {
 	for name, test := range testsOK {
 		t.Run(name, func(t *testing.T) {
-			got, _ := ConvertToRPN(test.input)
+			got, err := ConvertToRPN(test.input)
+			require.Equal(t, nil, err,
+				"Test %q. Got an error %v", name, err)
 			require.Equal(t, test.expected, got,
 				"Test %q returned %v; expected %v", name, got, test.expected)
 		})

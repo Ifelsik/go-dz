@@ -1,4 +1,4 @@
-package calcutils
+package calc
 
 import (
 	"testing"
