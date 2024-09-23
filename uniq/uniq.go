@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"uniq/uniqutils"
+	"uniq/uniq"
 )
 
-// debug mode enabled
-const DEBUG = true
 
 func check(e error) {
 	if e != nil {
@@ -50,7 +48,7 @@ func main () {
 		outFilePath = args[1]
 	}
 	
-	options := uniqutils.Options {
+	options := uniq.Options {
 		FlagC: *cFlag,
 		FlagD: *dFlag,
 		FlagU: *uFlag,
@@ -79,19 +77,10 @@ func main () {
 		fmt.Fprintln(os.Stderr, "Error: while reading ", err)
 	} 
 
-	if DEBUG {
-		fmt.Println("-c: ", *cFlag)
-		fmt.Println("-d: ", *dFlag)
-		fmt.Println("-u: ", *uFlag)
-		fmt.Println("-f: ", *fFlag)
-		fmt.Println("-s: ", *sFlag)
-		fmt.Println("-i: ", *iFlag)
-
-		fmt.Println("file in: ", inFilePath)
-		fmt.Println("file out:", outFilePath)
+	result, err := uniq.Uniq(rows, options)
+	if err != nil {
+		fmt.Printf("Got an error: %s", err)
 	}
-
-	result, _ := uniqutils.Uniq(rows, options) 
 	
 	var outStream io.Writer
 	if len(outFilePath) > 0 {
@@ -107,11 +96,5 @@ func main () {
 	for _, line := range result {
 		_, err := writer.WriteString(line)
 		check(err)
-	}
-	
-
-	if DEBUG {
-		fmt.Println(rows)
-		fmt.Println(result)
 	}
 }

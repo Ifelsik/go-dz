@@ -1,7 +1,6 @@
-package uniqutils
+package uniq
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"unicode"
@@ -20,7 +19,7 @@ type Options struct {
 
 func Uniq(rows []string, options Options) ([]string, error) {
 	if !isOptionsValid(options) {
-		return nil, errors.New("cmd options validation error")
+		return nil, fmt.Errorf("cmd options validation error")
 	}
 	if len(rows) == 0 { // if rows are empty return empty result
 		return rows, nil

@@ -1,7 +1,8 @@
-package uniqutils
+package uniq
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -209,17 +210,18 @@ var testsOK = map[string] struct {
 func TestUniqOk(t *testing.T) {
 	for name, test := range testsOK {
 		t.Run(name, func(t *testing.T) {
-			// t.Parallel()
 			got, _ := Uniq(test.lines, test.options)
 			require.Equal(t, test.result, got,
 				          "Test %q returned %v; expected %v", name, got, test.result) 
-
 		})
 	}
 }
 
-// func TestUniqFail(t *testing.T) {
-// 	for name, test := range testsFail {
 
-// 	}
-// }
+func TestUniqFail(t *testing.T) {
+	t.Run("invalid options", func(t *testing.T) {
+		options := Options{FlagC: true, FlagD: true}
+		_, err := Uniq([]string{}, options)
+		require.EqualError(t, err, "cmd options validation error")
+	})
+}
