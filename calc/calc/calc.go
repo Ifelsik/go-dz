@@ -11,7 +11,7 @@ import (
 // Returns result and error
 func Calc(expression string) (float64, error) {
 	if !isValidExpression(expression) {
-		return 0, fmt.Errorf("validation error")
+		return 0, fmt.Errorf("invalid expression")
 	}
 	// expression = strings.ReplaceAll(expression, " ", "")  // deletes spaces
 
@@ -35,7 +35,8 @@ func Calc(expression string) (float64, error) {
 		value2, err2 := stack.Pop()
 
 		if err1 != nil || err2 != nil {
-			return 0, fmt.Errorf("something went wrong while pop from stack") 
+			return 0, fmt.Errorf(
+			       "something went wrong while pop from stack (probably incorrect expression)")
 		}
 
 		value1Float, err1 := strconv.ParseFloat(value1, 64)
