@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"unicode"
+	"strings"
 )
 
 type Options struct {
@@ -28,19 +28,29 @@ func Uniq(rows []string, options Options) ([]string, error) {
 
 	rowEqualsCount := 0
 	var result []string
-	var previousRow []rune = []rune(rows[0])  // no index out of range. Case checked upper
+	var previousRow []rune
 
+	if options.FlagI {  // Flag -i. making row lowercase
+		previousRow = []rune(strings.ToLower(rows[0])) 
+	} else {  // Nothing to change
+		previousRow = []rune(rows[0]) 
+	}
 
 	for i, row := range rows {
+		
+		if options.FlagI {  // Flag -i. making row lowercase
+			// !!!!convert previousRow to Lowercase!!!!!!
+			row = strings.ToLower(row)
+		}
+
 		rowRune := []rune(row)  // covert byte string to runes slice
+		
 
 		rowRuneModified := skipFieldsInRow(rowRune, options.FlagF) // by default -f equals 0 and function doing nothing in this case
 		rowRuneModified = skipRunesInRow(rowRuneModified, options.FlagS)  // same as -f option but for -s flag
-		rowRuneModified = changeRunesCaseInRow(rowRuneModified, options.FlagI)  // if flag -i providen make rowRune's runes same case 
 
 		previousRowModified := skipFieldsInRow(previousRow, options.FlagF)  // modifying row that uses for comparison with next rows
 		previousRowModified = skipRunesInRow(previousRowModified, options.FlagS)
-		previousRowModified = changeRunesCaseInRow(previousRowModified, options.FlagI)
 
 		if slices.Equal(rowRuneModified, previousRowModified) {
 			rowEqualsCount += 1
@@ -95,18 +105,6 @@ func skipRunesInRow(row []rune, numRune int) []rune {
 	i := 0
 	for ; i < numRune && i < len(row); i++ {}
 	return row[i:]
-}
-
-func changeRunesCaseInRow(row []rune, makeLowercase bool) []rune {
-	if !makeLowercase {
-		return row
-	}
-
-	result := make([]rune, len(row))
-	for _, r := range row {
-		result = append(result, unicode.ToLower(r))
-	}
-	return result
 }
 
 func formPointerToResultRow(options Options, previousRow []rune, rowEqualsCount int) *string {
