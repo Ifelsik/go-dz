@@ -13,13 +13,13 @@ type Options struct {
 	FlagF       int
 	FlagS       int
 	FlagI       bool
-	// inFilePath  string
-	// outFilePath string
+	InFilePath  string
+	OutFilePath string
 }
 
-func Uniq(rows []string, options Options) ([]string, error) {
-	if !isOptionsValid(options) {
-		return nil, fmt.Errorf("cmd options validation error")
+func Uniq(rows []string, options *Options) ([]string, error) {
+	if ok, err := IsOptionsValid(options); !ok {
+		return nil, fmt.Errorf("options validation error: %v", err)
 	}
 	if len(rows) == 0 { // if rows are empty return empty result
 		return rows, nil
@@ -32,21 +32,20 @@ func Uniq(rows []string, options Options) ([]string, error) {
 
 	for i, row := range rows {
 		rowRune := []rune(row)  // covert byte string to runes slice
-
-		rowRuneModified := skipFieldsInRow(rowRune, options.FlagF) // by default -f equals 0 and function doing nothing in this case
-		rowRuneModified = skipRunesInRow(rowRuneModified, options.FlagS)  // same as -f option but for -s flag
-		rowRuneModified = changeRunesCaseInRow(rowRuneModified, options.FlagI)  // if flag -i providen make rowRune's runes same case 
-
-		previousRowModified := skipFieldsInRow(previousRow, options.FlagF)  // modifying row that uses for comparison with next rows
-		previousRowModified = skipRunesInRow(previousRowModified, options.FlagS)
-		previousRowModified = changeRunesCaseInRow(previousRowModified, options.FlagI)
+  
+		// by default -f equals 0 and function doing nothing in this case
+		// same as -f option but for -s flag
+		// if flag -i providen make rowRune's runes same case 
+		rowRuneModified := modifyRow(rowRune, options)
+		
+		// modifying row that uses for comparison with next rows
+		previousRowModified := modifyRow(previousRow, options)
 
 		if slices.Equal(rowRuneModified, previousRowModified) {
 			rowEqualsCount += 1
 		} else {  // current and previous rows not equals
-			ptrRow := formPointerToResultRow(options, previousRow, rowEqualsCount)  // returns nil when conditions required by flags is not completed
-			if ptrRow != nil {
-				result = append(result, *ptrRow)
+			if resultRow, ok := formResultRow(options, previousRow, rowEqualsCount); ok {
+				result = append(result, resultRow)
 			}
 
 			rowEqualsCount = 1  // in any case any row equals itself
@@ -54,9 +53,8 @@ func Uniq(rows []string, options Options) ([]string, error) {
 		}
 
 		if i == (len(rows) - 1) {  // Last row only
-			ptrRow := formPointerToResultRow(options, previousRow, rowEqualsCount)
-			if ptrRow != nil {
-				result = append(result, *ptrRow)
+			if resultRow, ok := formResultRow(options, previousRow, rowEqualsCount); ok {
+				result = append(result, resultRow)
 			}
 		}
 	}
@@ -64,64 +62,67 @@ func Uniq(rows []string, options Options) ([]string, error) {
 	return result, nil
 }
 
-func isOptionsValid(options Options) bool {
+func IsOptionsValid(options *Options) (bool, error) {
 	if (options.FlagC && options.FlagD) || (options.FlagC && options.FlagU) || (options.FlagD && options.FlagU) {
-		return false
+		return false, fmt.Errorf("-c, -d or -u flags can't be used toghter")
 	}
-	return true
+	if options.FlagF < 0 {
+		return false, fmt.Errorf("flag -f can't be negative")
+	}
+	if options.FlagS < 0 {
+		return false, fmt.Errorf("flag -s can't be negative")
+	}
+	return true, nil
 }
 
-func skipFieldsInRow(row []rune, numField int) []rune {
-	if (numField == 0) {  // no fields nom provide, just return unmodified row
-		return row
-	}
-
+func modifyRow(row []rune, options *Options) []rune {
+	// processing flag -f
 	fields := 0
 	indexAfterSkippedFields := 0
 	for i, r := range row {
 		if r == ' ' {  // count fields
 			fields++
 		}
-		if fields >= numField {  // reached or step over required numFields
+		if fields >= options.FlagF {  // reached or step over required numFields
 			indexAfterSkippedFields = i + 1
 			break
 		}
 	}
-	return row[indexAfterSkippedFields:]
-}
 
-func skipRunesInRow(row []rune, numRune int) []rune {
-	i := 0
-	for ; i < numRune && i < len(row); i++ {}
-	return row[i:]
-}
+	row = row[indexAfterSkippedFields:]
 
-func changeRunesCaseInRow(row []rune, makeLowercase bool) []rune {
-	if !makeLowercase {
-		return row
+	// processing flag -s
+	skippedRunes := 0
+	for ; skippedRunes < options.FlagS && skippedRunes < len(row); skippedRunes++ {}
+
+	row = row[skippedRunes:]
+
+	// processing flag -f
+	if options.FlagI {
+		result := make([]rune, len(row))
+		for _, r := range row {
+			result = append(result, unicode.ToLower(r))
+		}
+		row = result
 	}
 
-	result := make([]rune, len(row))
-	for _, r := range row {
-		result = append(result, unicode.ToLower(r))
-	}
-	return result
+	return row
 }
 
-func formPointerToResultRow(options Options, previousRow []rune, rowEqualsCount int) *string {
+func formResultRow(options *Options, previousRow []rune, rowEqualsCount int) (string, bool) {
 	switch {
 	case ! (options.FlagC || options.FlagD || options.FlagU):
 		row := string(previousRow)
-		return &row
+		return row, true
 	case options.FlagC:
 		row := fmt.Sprintf("%d %s", rowEqualsCount, string(previousRow))
-		return &row
+		return row, true
 	case options.FlagD && rowEqualsCount > 1: // Flag -d. Only repeated rows
 		row := string(previousRow)
-		return &row
+		return row, true
 	case options.FlagU && rowEqualsCount == 1 :  // Flag -u. Only unique rows
 		row := string(previousRow)
-		return &row
+		return row, true
 	}	
-	return nil
+	return "", false
 }

@@ -16,7 +16,7 @@ func check(e error) {
 	}
 }
 
-func main () {
+func parseArguments() (*uniq.Options, error) {
 	var cFlag = flag.Bool("c", false, "Count the number of row encounters")
 	var dFlag = flag.Bool("d", false, "Show only repeated rows")
 	var uFlag = flag.Bool("u", false, "Show only those rows that aren't repeated")
@@ -36,10 +36,10 @@ func main () {
 
 	args := flag.Args()
 	if len(args) > 2 {
-		fmt.Printf(`Error: maximum 2 arguments can be:
-					inputFile and outFile, but got %d`, len(args))
-		return
+		return nil, fmt.Errorf(`maximum 2 arguments can be:
+		       inFile and outFile, but got %d`, len(args))
 	}
+
 	var inFilePath, outFilePath string
 	if len(args) >= 1 {
 		inFilePath = args[0]
@@ -48,24 +48,38 @@ func main () {
 		outFilePath = args[1]
 	}
 	
-	options := uniq.Options {
-		FlagC: *cFlag,
-		FlagD: *dFlag,
-		FlagU: *uFlag,
-		FlagF: *fFlag,
-		FlagS: *sFlag,
-		FlagI: *iFlag,
+	options := &uniq.Options {
+		FlagC:       *cFlag,
+		FlagD:       *dFlag,
+		FlagU:       *uFlag,
+		FlagF:       *fFlag,
+		FlagS:       *sFlag,
+		FlagI:       *iFlag,
+		InFilePath:  inFilePath,
+		OutFilePath: outFilePath,
+	}
+	
+	if ok, err := uniq.IsOptionsValid(options); !ok {
+		return nil, fmt.Errorf("cmd options validation error: %v", err)
 	}
 
+	return options, nil
+}
+
+func readFile(options *uniq.Options) ([]string, error) {
 	var reader io.Reader
-	if len(inFilePath) > 0 {  // path isn't empty	
-		file, err := os.Open(inFilePath)
-		check(err)
+	if len(options.InFilePath) > 0 {  // path isn't empty	
+		file, err := os.Open(options.InFilePath)
+
+		if err != nil {
+			return nil, err
+		}
+
 		defer file.Close()
 		reader = file
 	} else {
 		reader = os.Stdin
-		fmt.Println("Hint: To stop the input press Ctrl + C")
+		fmt.Println("Hint: to stop input enter Ctrl+Z (Windows)")
 	}
 	scanner := bufio.NewScanner(reader)
 
@@ -74,27 +88,49 @@ func main () {
 		rows = append(rows, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error: while reading ", err)
-	} 
-
-	result, err := uniq.Uniq(rows, options)
-	if err != nil {
-		fmt.Printf("Got an error: %s", err)
+		return nil, fmt.Errorf("while reading got %v", err)
 	}
-	
-	var outStream io.Writer
-	if len(outFilePath) > 0 {
-		file, err := os.Create(outFilePath)  // creates file if doesn't exist
-		check(err)
+	return rows, nil
+}
+
+func writeFile(rows []string, options *uniq.Options) error {
+	var outStream io.Writer = os.Stdout
+	if len(options.OutFilePath) > 0 {
+		file, err := os.Create(options.OutFilePath)  // creates file if doesn't exist
+		
+		if err != nil {
+			return err
+		}
+		
 		defer file.Close()
 		outStream = file
-	} else {
-		outStream = os.Stdout
 	}
 	writer := bufio.NewWriter(outStream)
 
-	for _, line := range result {
-		_, err := writer.WriteString(line)
-		check(err)
+	for _, line := range rows {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
 	}
+
+	if err := writer.Flush(); err != nil {
+		return fmt.Errorf("while flush: %v", err)
+	}
+
+	return nil
+}
+
+func main() {
+	options, err := parseArguments()
+	check(err)
+
+	rows, err := readFile(options)
+	check(err)
+
+	result, err := uniq.Uniq(rows, options)
+	check(err)
+
+	err = writeFile(result, options)
+	check(err)
 }

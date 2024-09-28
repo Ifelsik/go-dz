@@ -10,7 +10,144 @@ var testsOK = map[string] struct {
 	lines   []string
 	options Options
 	result  []string
-}{
+}{	
+	"examples/without params": {
+		lines: []string{
+			"I love music.",
+			"I love music.",
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+			"Thanks.",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+		},
+		options: Options{},
+		result: []string{
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"Thanks.",
+			"I love music of Kartik.",
+		},
+	},
+	"examples/-c": {
+		lines: []string{
+			"I love music.",
+			"I love music.",
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+			"Thanks.",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+		},
+		options: Options{FlagC: true},
+		result: []string{
+			"3 I love music.",
+			"1 ",
+			"2 I love music of Kartik.",
+			"1 Thanks.",
+			"2 I love music of Kartik.",
+		},
+	},
+	"examples/-d": {
+		lines: []string{
+			"I love music.",
+			"I love music.",
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+			"Thanks.",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+		},
+		options: Options{FlagD: true},
+		result: []string{
+			"I love music.",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+		},
+	},
+	"examples/-u": {
+		lines: []string{
+			"I love music.",
+			"I love music.",
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+			"Thanks.",
+			"I love music of Kartik.",
+			"I love music of Kartik.",
+		},
+		options: Options{FlagU: true},
+		result: []string{
+			"",
+			"Thanks.",
+		},
+	},
+	"examples/-i": {
+		lines: []string{
+			"I LOVE MUSIC.",
+			"I love music.",
+			"I LoVe MuSiC.",
+			"",
+			"I love MuSIC of Kartik.",
+			"I love music of kartik.",
+			"Thanks.",
+			"I love music of kartik.",
+			"I love MuSIC of Kartik.",
+		},
+		options: Options{FlagI: true},
+		result: []string{
+			"I LOVE MUSIC.",
+			"",
+			"I love MuSIC of Kartik.",
+			"Thanks.",
+			"I love music of kartik.",
+		},
+	},
+	"examples/-f_num": {
+		lines: []string{
+			"We love music.",
+			"I love music.",
+			"They love music.",
+			"",
+			"I love music of Kartik.",
+			"We love music of Kartik.",
+			"Thanks.",
+		},
+		options: Options{FlagF: 1},
+		result: []string{
+			"We love music.",
+			"",
+			"I love music of Kartik.",
+			"Thanks.",
+		},
+	},
+	"examples/s_num": {
+		lines: []string{
+			"I love music.",
+			"A love music.",
+			"C love music.",
+			"",
+			"I love music of Kartik.",
+			"We love music of Kartik.",
+			"Thanks.",
+		},
+		options: Options{FlagS: 1},
+		result: []string{
+			"I love music.",
+			"",
+			"I love music of Kartik.",
+			"We love music of Kartik.",
+			"Thanks.",
+		},
+	},
 	"without options #1": {
 		lines: []string{
 			"abc",
@@ -210,7 +347,7 @@ var testsOK = map[string] struct {
 func TestUniqOk(t *testing.T) {
 	for name, test := range testsOK {
 		t.Run(name, func(t *testing.T) {
-			got, _ := Uniq(test.lines, test.options)
+			got, _ := Uniq(test.lines, &test.options)
 			require.Equal(t, test.result, got,
 				          "Test %q returned %v; expected %v", name, got, test.result) 
 		})
@@ -221,7 +358,20 @@ func TestUniqOk(t *testing.T) {
 func TestUniqFail(t *testing.T) {
 	t.Run("invalid options", func(t *testing.T) {
 		options := Options{FlagC: true, FlagD: true}
-		_, err := Uniq([]string{}, options)
-		require.EqualError(t, err, "cmd options validation error")
+		_, err := Uniq([]string{}, &options)
+		require.EqualError(t, err,
+			"options validation error: -c, -d or -u flags can't be used toghter")
+	})
+	t.Run("negative -f", func(t *testing.T) {
+		options := Options{FlagF: -1}
+		_, err := Uniq([]string{}, &options)
+		require.EqualError(t, err,
+			"options validation error: flag -f can't be negative")
+	})
+	t.Run("negative -s", func(t *testing.T) {
+		options := Options{FlagS: -50}
+		_, err := Uniq([]string{}, &options)
+		require.EqualError(t, err,
+			"options validation error: flag -s can't be negative")
 	})
 }
