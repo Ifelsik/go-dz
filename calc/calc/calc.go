@@ -2,18 +2,18 @@ package calc
 
 import (
 	"fmt"
+	"math"
+	"regexp"
 	"strconv"
 	"strings"
-	"regexp"
 )
 
-// It accepts expression in a slice format (i.e. "2+3" -> ["2", "+", "3"])
+// It accepts expression in string.
 // Returns result and error
 func Calc(expression string) (float64, error) {
 	if !isValidExpression(expression) {
 		return 0, fmt.Errorf("invalid expression")
 	}
-	// expression = strings.ReplaceAll(expression, " ", "")  // deletes spaces
 
 	re := regexp.MustCompile(`\d+|[+*/()-]`)
     expressionTokenized := re.FindAllString(expression, -1)
@@ -31,10 +31,10 @@ func Calc(expression string) (float64, error) {
 			continue
 		}
 
-		value1, err1 := stack.Pop()
-		value2, err2 := stack.Pop()
+		value1, ok1 := stack.Pop()
+		value2, ok2 := stack.Pop()
 
-		if err1 != nil || err2 != nil {
+		if !(ok1 && ok2) {
 			return 0, fmt.Errorf(
 			       "something went wrong while pop from stack (probably incorrect expression)")
 		}
@@ -54,15 +54,18 @@ func Calc(expression string) (float64, error) {
 		case "*":
 			stack.Push(strconv.FormatFloat(value2Float * value1Float, 'f', -1, 64))
 		case "/":
+			if math.Abs(value1Float) < 1e-9 {  // epsilon 10^-9
+				return 0, fmt.Errorf("division by zero")
+			}
 			stack.Push(strconv.FormatFloat(value2Float / value1Float, 'f', -1, 64))
 		default:
 			return 0, fmt.Errorf("unknown operator")
 		}
 	}
 
-	result, err := stack.Top()
-	if err != nil {
-		return 0, err
+	result, ok := stack.Top()
+	if !ok {
+		return 0, fmt.Errorf("after calculation top of stack is empty")
 	}
 
 	resultFloat, err := strconv.ParseFloat(result, 64)

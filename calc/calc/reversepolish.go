@@ -38,7 +38,7 @@ func ConvertToRPN(expression []string) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			topPriority, err	 := getOperandPriority(top)
+			topPriority, err := getOperandPriority(top)
 			if err != nil {
 				return nil, err
 			}
@@ -50,10 +50,10 @@ func ConvertToRPN(expression []string) ([]string, error) {
 
 				stack.Pop()
 
-				var err error
-				top, err = stack.Top()
+				var ok bool
+				top, ok = stack.Top()
 
-				if err != nil {  // stack is empty
+				if !ok {  // stack is empty
 					break
 				}
 
@@ -65,9 +65,9 @@ func ConvertToRPN(expression []string) ([]string, error) {
 				// if have reached ')', then pop from stack until find opening bracket
 				// when found if, just pop '(' 
 				if isBracketsEnd && top == "(" {
-					_, err = stack.Pop()
-					if err != nil {
-						return nil, err
+					_, ok = stack.Pop()
+					if !ok {
+						return nil, fmt.Errorf("stack is empty")
 					}
 
 					isBracketsEnd = false
