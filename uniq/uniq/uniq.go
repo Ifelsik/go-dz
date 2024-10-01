@@ -75,33 +75,44 @@ func IsFlagsValid(options *Options) (bool, error) {
 }
 
 func modifyRow(row []rune, options *Options) []rune {
-	// processing flag -f
-	fields := 0
-	indexAfterSkippedFields := 0
-	for i, r := range row {
-		if r == ' ' { // count fields
-			fields++
+	// processing fields
+	if options.FlagF > 0 {	
+		indexAfterSkippedFields := 0
+		
+		fields := 0
+		var rPrev rune // previous rune
+		for i, r := range row {
+			if (rPrev == ' ' || rPrev == 0) && r != ' ' && r != 0 { // count fields
+				fields++
+			}
+			if fields > options.FlagF { // reached or step over required numFields
+				indexAfterSkippedFields = i
+				break
+			}
+			rPrev = r
 		}
-		if fields >= options.FlagF { // reached or step over required numFields
-			indexAfterSkippedFields = i + 1
-			break
+
+		if options.FlagF > fields {
+			indexAfterSkippedFields = len(row)
 		}
+		
+		row = row[indexAfterSkippedFields:]
 	}
 
-	row = row[indexAfterSkippedFields:]
-
-	// processing flag -s
-	skippedRunes := 0
-	for ; skippedRunes < options.FlagS && skippedRunes < len(row); skippedRunes++ {
+	// processing symbols
+	if options.FlagS > 0 {
+		skippedRunes := options.FlagS
+		if options.FlagS > len(row) {
+			skippedRunes = len(row)
+		}
+		row = row[skippedRunes:]
 	}
 
-	row = row[skippedRunes:]
-
-	// processing flag -f
+	// convert row to the same case
 	if options.FlagI {
 		result := make([]rune, len(row))
-		for _, r := range row {
-			result = append(result, unicode.ToLower(r))
+		for i, r := range row {
+			result[i] = unicode.ToLower(r)
 		}
 		row = result
 	}
