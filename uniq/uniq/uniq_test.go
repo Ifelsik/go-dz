@@ -345,17 +345,19 @@ var testsOK = map[string] struct {
 }
 
 func TestUniqOk(t *testing.T) {
+	t.Parallel()
 	for name, test := range testsOK {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			got, _ := Uniq(test.lines, &test.options)
 			require.Equal(t, test.result, got,
-				          "Test %q returned %v; expected %v", name, got, test.result) 
+				"Test %q returned %v; expected %v", name, got, test.result) 
 		})
 	}
 }
 
-
 func TestUniqFail(t *testing.T) {
+	t.Parallel()
 	t.Run("invalid options", func(t *testing.T) {
 		options := Options{FlagC: true, FlagD: true}
 		_, err := Uniq([]string{}, &options)
@@ -363,12 +365,14 @@ func TestUniqFail(t *testing.T) {
 			"options validation error: -c, -d or -u flags can't be used toghter")
 	})
 	t.Run("negative -f", func(t *testing.T) {
+		t.Parallel()
 		options := Options{FlagF: -1}
 		_, err := Uniq([]string{}, &options)
 		require.EqualError(t, err,
 			"options validation error: flag -f can't be negative")
 	})
 	t.Run("negative -s", func(t *testing.T) {
+		t.Parallel()
 		options := Options{FlagS: -50}
 		_, err := Uniq([]string{}, &options)
 		require.EqualError(t, err,

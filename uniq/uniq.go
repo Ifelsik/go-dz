@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"uniq/uniq"
 )
-
 
 func check(e error) {
 	if e != nil {
@@ -43,12 +43,26 @@ func parseArguments() (*uniq.Options, error) {
 	var inFilePath, outFilePath string
 	if len(args) >= 1 {
 		inFilePath = args[0]
+
+		inFile, err := os.Open(inFilePath)
+		// checking posibility to open file
+		if err != nil {
+			return nil, fmt.Errorf("unable to open input file %v", inFilePath)
+		}
+		defer inFile.Close()
 	}
 	if len(args) == 2 {
 		outFilePath = args[1]
+
+		dir := filepath.Dir(outFilePath)
+		// checks existance of the dir
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			return nil,
+			       fmt.Errorf("unable to open or create file %v, such directory doesn't exist", outFilePath)
+		}
 	}
-	
-	options := &uniq.Options {
+
+	options := &uniq.Options{
 		FlagC:       *cFlag,
 		FlagD:       *dFlag,
 		FlagU:       *uFlag,
@@ -58,8 +72,8 @@ func parseArguments() (*uniq.Options, error) {
 		InFilePath:  inFilePath,
 		OutFilePath: outFilePath,
 	}
-	
-	if ok, err := uniq.IsOptionsValid(options); !ok {
+
+	if ok, err := uniq.IsFlagsValid(options); !ok {
 		return nil, fmt.Errorf("cmd options validation error: %v", err)
 	}
 
@@ -68,7 +82,7 @@ func parseArguments() (*uniq.Options, error) {
 
 func readFile(options *uniq.Options) ([]string, error) {
 	var reader io.Reader
-	if len(options.InFilePath) > 0 {  // path isn't empty	
+	if len(options.InFilePath) > 0 { // path isn't empty
 		file, err := os.Open(options.InFilePath)
 
 		if err != nil {
@@ -79,7 +93,7 @@ func readFile(options *uniq.Options) ([]string, error) {
 		reader = file
 	} else {
 		reader = os.Stdin
-		fmt.Println("Hint: to stop input enter Ctrl+Z (Windows)")
+		fmt.Println("Hint: to stop input enter Ctrl+Z (Windows) or Ctrl+D (Unix)")	
 	}
 	scanner := bufio.NewScanner(reader)
 
@@ -96,12 +110,12 @@ func readFile(options *uniq.Options) ([]string, error) {
 func writeFile(rows []string, options *uniq.Options) error {
 	var outStream io.Writer = os.Stdout
 	if len(options.OutFilePath) > 0 {
-		file, err := os.Create(options.OutFilePath)  // creates file if doesn't exist
-		
+		file, err := os.Create(options.OutFilePath) // creates file if doesn't exist
+
 		if err != nil {
 			return err
 		}
-		
+
 		defer file.Close()
 		outStream = file
 	}

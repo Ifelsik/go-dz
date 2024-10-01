@@ -18,7 +18,7 @@ type Options struct {
 }
 
 func Uniq(rows []string, options *Options) ([]string, error) {
-	if ok, err := IsOptionsValid(options); !ok {
+	if ok, err := IsFlagsValid(options); !ok {
 		return nil, fmt.Errorf("options validation error: %v", err)
 	}
 	if len(rows) == 0 { // if rows are empty return empty result
@@ -27,32 +27,31 @@ func Uniq(rows []string, options *Options) ([]string, error) {
 
 	rowEqualsCount := 0
 	var result []string
-	var previousRow []rune = []rune(rows[0])  // no index out of range. Case checked upper
-
+	var previousRow []rune = []rune(rows[0]) // no index out of range. Case checked upper
 
 	for i, row := range rows {
-		rowRune := []rune(row)  // covert byte string to runes slice
-  
+		rowRune := []rune(row) // covert byte string to runes slice
+
 		// by default -f equals 0 and function doing nothing in this case
 		// same as -f option but for -s flag
-		// if flag -i providen make rowRune's runes same case 
+		// if flag -i providen make rowRune's runes same case
 		rowRuneModified := modifyRow(rowRune, options)
-		
+
 		// modifying row that uses for comparison with next rows
 		previousRowModified := modifyRow(previousRow, options)
 
 		if slices.Equal(rowRuneModified, previousRowModified) {
 			rowEqualsCount += 1
-		} else {  // current and previous rows not equals
+		} else { // current and previous rows not equals
 			if resultRow, ok := formResultRow(options, previousRow, rowEqualsCount); ok {
 				result = append(result, resultRow)
 			}
 
-			rowEqualsCount = 1  // in any case any row equals itself
+			rowEqualsCount = 1 // in any case any row equals itself
 			previousRow = rowRune
 		}
 
-		if i == (len(rows) - 1) {  // Last row only
+		if i == (len(rows) - 1) { // Last row only
 			if resultRow, ok := formResultRow(options, previousRow, rowEqualsCount); ok {
 				result = append(result, resultRow)
 			}
@@ -62,7 +61,7 @@ func Uniq(rows []string, options *Options) ([]string, error) {
 	return result, nil
 }
 
-func IsOptionsValid(options *Options) (bool, error) {
+func IsFlagsValid(options *Options) (bool, error) {
 	if (options.FlagC && options.FlagD) || (options.FlagC && options.FlagU) || (options.FlagD && options.FlagU) {
 		return false, fmt.Errorf("-c, -d or -u flags can't be used toghter")
 	}
@@ -80,10 +79,10 @@ func modifyRow(row []rune, options *Options) []rune {
 	fields := 0
 	indexAfterSkippedFields := 0
 	for i, r := range row {
-		if r == ' ' {  // count fields
+		if r == ' ' { // count fields
 			fields++
 		}
-		if fields >= options.FlagF {  // reached or step over required numFields
+		if fields >= options.FlagF { // reached or step over required numFields
 			indexAfterSkippedFields = i + 1
 			break
 		}
@@ -93,7 +92,8 @@ func modifyRow(row []rune, options *Options) []rune {
 
 	// processing flag -s
 	skippedRunes := 0
-	for ; skippedRunes < options.FlagS && skippedRunes < len(row); skippedRunes++ {}
+	for ; skippedRunes < options.FlagS && skippedRunes < len(row); skippedRunes++ {
+	}
 
 	row = row[skippedRunes:]
 
@@ -111,7 +111,7 @@ func modifyRow(row []rune, options *Options) []rune {
 
 func formResultRow(options *Options, previousRow []rune, rowEqualsCount int) (string, bool) {
 	switch {
-	case ! (options.FlagC || options.FlagD || options.FlagU):
+	case !(options.FlagC || options.FlagD || options.FlagU):
 		row := string(previousRow)
 		return row, true
 	case options.FlagC:
@@ -120,9 +120,9 @@ func formResultRow(options *Options, previousRow []rune, rowEqualsCount int) (st
 	case options.FlagD && rowEqualsCount > 1: // Flag -d. Only repeated rows
 		row := string(previousRow)
 		return row, true
-	case options.FlagU && rowEqualsCount == 1 :  // Flag -u. Only unique rows
+	case options.FlagU && rowEqualsCount == 1: // Flag -u. Only unique rows
 		row := string(previousRow)
 		return row, true
-	}	
+	}
 	return "", false
 }
