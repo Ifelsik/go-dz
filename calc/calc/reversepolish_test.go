@@ -6,6 +6,7 @@ import (
 )
 
 func TestConvertToRPNOk(t *testing.T) {
+	t.Parallel()
 	var testsOk = map[string] struct {
 		input  []string
 		expected []string
@@ -39,6 +40,7 @@ func TestConvertToRPNOk(t *testing.T) {
 
 	for name, test := range testsOk {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			got, err := ConvertToRPN(test.input)
 			require.Equal(t, nil, err,
 				"Test %q. Got an error: %v", name, err)
@@ -49,6 +51,7 @@ func TestConvertToRPNOk(t *testing.T) {
 }
 
 func TestConvertToRPNFail(t *testing.T) {
+	t.Parallel()
 	var testsFail = map[string] struct {
 		input    []string
 		expected string
@@ -61,6 +64,7 @@ func TestConvertToRPNFail(t *testing.T) {
 
 	for name, test := range testsFail {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			_, err := ConvertToRPN(test.input)
 			require.EqualError(t, err, test.expected,
 				"Test %q expected err %q; got err %q", name, test.expected, err)

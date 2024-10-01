@@ -11,12 +11,14 @@ import (
 // It accepts expression in string.
 // Returns result and error
 func Calc(expression string) (float64, error) {
+	expression = strings.ReplaceAll(expression, " ", "")  // deletes spaces
+	
 	if !isValidExpression(expression) {
 		return 0, fmt.Errorf("invalid expression")
 	}
 
 	re := regexp.MustCompile(`\d+|[+*/()-]`)
-    expressionTokenized := re.FindAllString(expression, -1)
+	expressionTokenized := re.FindAllString(expression, -1)
 
 	infixExpression, err := ConvertToRPN(expressionTokenized)
 	if err != nil {
@@ -77,29 +79,36 @@ func Calc(expression string) (float64, error) {
 }
 
 func isValidExpression(expression string) bool {
-	expression = strings.ReplaceAll(expression, " ", "")  // deletes spaces
+	// Acceptable chars
+	if matched, _ := regexp.MatchString(`[^0-9+\-*/().]`, expression); matched {
+		return false
+	}
 
-    // Acceptable chars
-    if matched, _ := regexp.MatchString(`[^0-9+\-*/().]`, expression); matched {
-        return false
-    }
+	// brackets balance
+	balance := 0
+	for _, char := range expression {
+		if char == '(' {
+			balance++
+		} else if char == ')' {
+			balance--
+			if balance < 0 {
+				return false
+			}
+		}
+	}
 
-    // brackets balance
-    balance := 0
-    for _, char := range expression {
-        if char == '(' {
-            balance++
-        } else if char == ')' {
-            balance--
-            if balance < 0 {
-                return false
-            }
-        }
-    }
+	if balance != 0 {
+		return false
+	}
 
-    if balance != 0 {
-        return false
-    }
+	// re := regexp.MustCompile(`\d+|[+*/()-]`)
+	// expressionTokenized := re.FindAllString(expression, -1)
+
+	// for i, r := range expressionTokenized {
+	// 	if i == 0 {
+	// 		if matched, _ := regexp.
+	// 	}
+	// }
 
 	return true
 }

@@ -8,6 +8,7 @@ import (
 )
 
 func TestCalc(t *testing.T) {
+	t.Parallel()
 	var testsOk = []struct{
 		input    string
 		expected float64
@@ -40,6 +41,7 @@ func TestCalc(t *testing.T) {
 
 	for i, test := range testsOk {
 		t.Run(fmt.Sprintf("test %d: ", i), func(t *testing.T) {
+			t.Parallel()
 			got, err := Calc(test.input)
 			require.Equal(t, nil, err,
 				"Test %q. Got an error: %v", test.input, err)
@@ -50,6 +52,7 @@ func TestCalc(t *testing.T) {
 }
 
 func TestCalcFail(t *testing.T) {
+	t.Parallel()
 	var testsFail = map[string] struct {
 		input    string
 		expected string
@@ -70,10 +73,15 @@ func TestCalcFail(t *testing.T) {
 			input:    "4~2",
 			expected: "invalid expression",
 		},
+		"division by zero": {
+			input:    "2 + (2 - 2 * 7)/0",
+			expected: "division by zero",
+		},
 	}
 
 	for name, test := range testsFail {
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 			_, err := Calc(test.input)
 			require.EqualError(t, err, test.expected,
 				"Test %q expected error: %q; got %q", name, test.expected, err)

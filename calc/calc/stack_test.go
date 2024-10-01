@@ -6,7 +6,10 @@ import (
 )
 
 func TestStack(t *testing.T) {
+	t.Parallel()
 	t.Run("Testing default", func(t *testing.T) {
+		t.Parallel()
+
 		s := NewStack()
 		
 		require.True(t, s.IsEmpty())  // stack must be empty
@@ -29,6 +32,8 @@ func TestStack(t *testing.T) {
 		require.True(t, !ok)
 	})
 	t.Run("Multiple push and pops", func(t *testing.T) {
+		t.Parallel()
+		
 		s := NewStack()
 
 		input1    := []string{"1", "2", "3", "4", "5"}

@@ -11,10 +11,11 @@ func main() {
 
 	if len(args) == 1 {
 		fmt.Fprintln(os.Stderr, "Error: no expression providen")
+		fmt.Println(`Usage example: go run calc.go "2+2*3"`)
 		return
 	}
 	if len(args) > 2 {
-		fmt.Fprintln(os.Stderr, "Error: more than 1 expression got")
+		fmt.Fprintln(os.Stderr, "Error: Calc requires 1 string as expression but more than 1 argument was providen")
 		return
 	}
 
