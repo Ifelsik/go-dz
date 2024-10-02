@@ -2,7 +2,6 @@ package calc
 
 import (
 	"fmt"
-	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -56,7 +55,7 @@ func Calc(expression string) (float64, error) {
 		case "*":
 			stack.Push(strconv.FormatFloat(value2Float * value1Float, 'f', -1, 64))
 		case "/":
-			if math.Abs(value1Float) < 1e-9 {  // epsilon 10^-9
+			if value1Float == 0 {  // precision approx. 1e-300
 				return 0, fmt.Errorf("division by zero")
 			}
 			stack.Push(strconv.FormatFloat(value2Float / value1Float, 'f', -1, 64))
