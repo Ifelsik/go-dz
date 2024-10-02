@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"uniq/uniq"
 )
 
@@ -54,12 +53,12 @@ func parseArguments() (*uniq.Options, error) {
 	if len(args) == 2 {
 		outFilePath = args[1]
 
-		dir := filepath.Dir(outFilePath)
-		// checks existance of the dir
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			return nil,
-			       fmt.Errorf("unable to open or create file %v, such directory doesn't exist", outFilePath)
+		outFile, err := os.Open(outFilePath)
+		// checking posibility to open file
+		if err != nil {
+			return nil, fmt.Errorf("unable to open output file %v", outFilePath)
 		}
+		defer outFile.Close()
 	}
 
 	options := &uniq.Options{

@@ -101,14 +101,5 @@ func isValidExpression(expression string) bool {
 		return false
 	}
 
-	// re := regexp.MustCompile(`\d+|[+*/()-]`)
-	// expressionTokenized := re.FindAllString(expression, -1)
-
-	// for i, r := range expressionTokenized {
-	// 	if i == 0 {
-	// 		if matched, _ := regexp.
-	// 	}
-	// }
-
 	return true
 }

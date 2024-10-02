@@ -249,7 +249,7 @@ var testsOK = map[string] struct {
 			"I love music of kartik.",
 			"I love MuSIC of Kartik.",
 		},
-		options: Options{FlagS: 200},
+		options: Options{FlagS: 50, FlagF: 2},
 		result: []string{
 			"I LOVE MUSIC.",
 		},
@@ -270,24 +270,34 @@ func TestUniqOk(t *testing.T) {
 
 func TestUniqFail(t *testing.T) {
 	t.Parallel()
-	t.Run("invalid options", func(t *testing.T) {
-		options := Options{FlagC: true, FlagD: true}
-		_, err := Uniq([]string{}, &options)
-		require.EqualError(t, err,
-			"options validation error: -c, -d or -u flags can't be used toghter")
-	})
-	t.Run("negative -f", func(t *testing.T) {
-		t.Parallel()
-		options := Options{FlagF: -1}
-		_, err := Uniq([]string{}, &options)
-		require.EqualError(t, err,
-			"options validation error: flag -f can't be negative")
-	})
-	t.Run("negative -s", func(t *testing.T) {
-		t.Parallel()
-		options := Options{FlagS: -50}
-		_, err := Uniq([]string{}, &options)
-		require.EqualError(t, err,
-			"options validation error: flag -s can't be negative")
-	})
+
+	testsFail := map[string]struct {
+		lines         []string
+		options       Options
+		expectedError string
+	} {
+		"invalid options": {
+			lines: []string{},
+			options: Options{FlagC: true, FlagD: true},
+			expectedError: "options validation error: -c, -d or -u flags can't be used toghter",
+		},
+		"negative -f": {
+			lines: []string{},
+			options: Options{FlagF: -1},
+			expectedError: "options validation error: flag -f can't be negative",
+		},
+		"negative -s": {
+			lines: []string{},
+			options: Options{FlagS: -50},
+			expectedError: "options validation error: flag -s can't be negative",
+		},
+	}
+
+	for name, test := range testsFail {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			_, err := Uniq(test.lines, &test.options)
+			require.EqualError(t, err, test.expectedError)
+		})
+	}
 }
