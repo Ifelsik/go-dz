@@ -259,7 +259,7 @@ func TestTotal(t *testing.T) {
 	expectedTime := 3000 * time.Millisecond
 	timeEnd := time.Since(timeStart)
 	assert.Less(t, timeEnd, expectedTime,
-		"слишком долгоe выполнение. что-то где-то нераспараллелено. должно быть не больше, чем %s, а было %s", timeEnd, expectedTime)
+		"слишком долгоe выполнение. что-то где-то нераспараллелено. должно быть не больше, чем %s, а было %s", expectedTime, timeEnd)
 	assert.Equal(t, expectedOutput, testResult,
 		"итоговый результат отличается от ожидаемого")
 	expectedStat := Stat{
