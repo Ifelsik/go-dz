@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"sync"
 )
 
 func RunPipeline(cmds ...cmd) {
@@ -28,47 +29,69 @@ func RunPipeline(cmds ...cmd) {
 func SelectUsers(in, out chan interface{}) {
 	// 	in - string
 	// 	out - User
-	var ids = map[uint64]bool{}
+	var ids = &sync.Map{}
+	var wg = &sync.WaitGroup{}
 	for email := range in {
-		user := GetUser(email.(string))
+		wg.Add(1)
+		go func(out chan interface{}, email interface{}) {
+			defer wg.Done()
+			user := GetUser(email.(string))
 
-		if _, ok := ids[user.ID]; !ok {
-			out <- user
-		}
-
-		ids[user.ID] = true
+			if _, ok := ids.Load(user.ID); !ok {
+				ids.Store(user.ID, true)
+				out <- user
+			}
+		}(out, email)
 	}
+	wg.Wait()
 }
 
 func SelectMessages(in, out chan interface{}) {
 	// 	in - User
 	// 	out - MsgID
-	for user := range in {
-		message, err := GetMessages(user.(User))
+	const batchSize = 2
+	wg := &sync.WaitGroup{}
+	for i := 0; i < batchSize; i++ {
+		wg.Add(1)
+		go func(in, out chan interface{}) {
+			defer wg.Done()
+			for user := range in {
+				if user, ok := user.(User); ok {
+					message, err := GetMessages(user)
 
-		if err != nil {
-			fmt.Printf("error %v", err)
-		}
-
-		out <- message
+					if err != nil {
+						fmt.Printf("error %v", err)
+						// if got an err return user back to input channel
+						in <- user
+					}
+					out <- message
+				}
+			}
+		}(in, out)
 	}
+	wg.Wait()
 }
 
 func CheckSpam(in, out chan interface{}) {
 	// in - MsgID
 	// out - MsgData
+	// wg := &sync.WaitGroup{}
+	// chBuff := make(chan interface{}, 5)
 	for idsInterface := range in {
 		for _, id := range idsInterface.([]MsgID) {
-			hasSpam, err := HasSpam(id)
 
-			if err != nil {
-				fmt.Printf("error %v", err)
-			}
+			func() {
+				hasSpam, err := HasSpam(id)
 
-			out <- MsgData{
-				ID:      id,
-				HasSpam: hasSpam,
-			}
+				if err != nil {
+					fmt.Printf("error %v", err)
+				}
+
+				out <- MsgData{
+					ID:      id,
+					HasSpam: hasSpam,
+				}
+			}()
 		}
 	}
 }
@@ -88,6 +111,7 @@ func CombineResults(in, out chan interface{}) {
 
 type msgDatas []MsgData
 
+// implementation of Sort interface for []MsgData
 func (m msgDatas) Len() int      { return len(m) }
 func (m msgDatas) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m msgDatas) Less(i, j int) bool {
