@@ -7,23 +7,21 @@ import (
 )
 
 func RunPipeline(cmds ...cmd) {
-	chans := make([]chan interface{}, len(cmds)+1)
-	for i := range chans {
-		chans[i] = make(chan interface{})
-	}
-
-	for i, foo := range cmds {
-		go func(i int, cmd cmd) {
-			defer close(chans[i+1])
+	in := make(chan interface{})
+	wg := &sync.WaitGroup{}
+	for _, foo := range cmds {
+		out := make(chan interface{})
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, cmd cmd, in, out chan interface{}) {
+			defer wg.Done()
+			defer close(out)
 			// cmd can be blocked by channel reciving or sending operation inside itself
 			// in this case whole goroutine blocks
-			cmd(chans[i], chans[i+1])
-		}(i, foo)
+			cmd(in, out)
+		}(wg, foo, in, out)
+		in = out
 	}
-
-	for line := range chans[len(chans)-1] {
-		fmt.Println(line)
-	}
+	wg.Wait()
 }
 
 func SelectUsers(in, out chan interface{}) {
@@ -33,7 +31,7 @@ func SelectUsers(in, out chan interface{}) {
 	var wg = &sync.WaitGroup{}
 	for email := range in {
 		wg.Add(1)
-		go func(out chan interface{}, email interface{}) {
+		go func(wg *sync.WaitGroup, out chan interface{}, email interface{}) {
 			defer wg.Done()
 			user := GetUser(email.(string))
 
@@ -41,7 +39,7 @@ func SelectUsers(in, out chan interface{}) {
 				ids.Store(user.ID, true)
 				out <- user
 			}
-		}(out, email)
+		}(wg, out, email)
 	}
 	wg.Wait()
 }
@@ -49,25 +47,36 @@ func SelectUsers(in, out chan interface{}) {
 func SelectMessages(in, out chan interface{}) {
 	// 	in - User
 	// 	out - MsgID
-	const batchSize = 2
+	batch := make([]User, 0, GetMessagesMaxUsersBatch)
 	wg := &sync.WaitGroup{}
-	for i := 0; i < batchSize; i++ {
-		wg.Add(1)
-		go func(in, out chan interface{}) {
-			defer wg.Done()
-			for user := range in {
-				if user, ok := user.(User); ok {
-					message, err := GetMessages(user)
+	asyncBatchedGetMessages := func(wg *sync.WaitGroup, out chan interface{}, batch []User) {
+		defer wg.Done()
+		
+		res, err := GetMessages(batch...)
+		if err != nil {
+			fmt.Printf("in SelectMessages %v", err)
+			return
+		}
 
-					if err != nil {
-						fmt.Printf("error %v", err)
-						// if got an err return user back to input channel
-						in <- user
-					}
-					out <- message
-				}
-			}
-		}(in, out)
+		for _, message := range res {
+			out <- message
+		}
+	}
+
+	for user := range in {
+		if user, ok := user.(User); ok {
+			batch = append(batch, user)
+		}
+		if len(batch) == GetMessagesMaxUsersBatch {
+			wg.Add(1)
+			go asyncBatchedGetMessages(wg, out, batch)
+			batch = nil
+		}
+	}
+
+	if len(batch) > 0 {
+		wg.Add(1)
+		go asyncBatchedGetMessages(wg, out, batch)
 	}
 	wg.Wait()
 }
@@ -75,31 +84,37 @@ func SelectMessages(in, out chan interface{}) {
 func CheckSpam(in, out chan interface{}) {
 	// in - MsgID
 	// out - MsgData
-	// wg := &sync.WaitGroup{}
-	// chBuff := make(chan interface{}, 5)
-	for idsInterface := range in {
-		for _, id := range idsInterface.([]MsgID) {
+	wg := &sync.WaitGroup{}
+	for i := 0; i < HasSpamMaxAsyncRequests; i++ {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, in, out chan interface{}) {
+			defer wg.Done()
 
-			func() {
-				hasSpam, err := HasSpam(id)
+			for msgId := range in {
+				if id, ok := msgId.(MsgID); ok {
+					hasSpam, err := HasSpam(id)
 
-				if err != nil {
-					fmt.Printf("error %v", err)
+					if err != nil {
+						fmt.Printf("in CheckSpam got %v", err)
+					}
+
+					out <- MsgData{
+						ID:      id,
+						HasSpam: hasSpam,
+					}
+				} else {
+					fmt.Printf("in CheckSpam can't convert msgIds; got %T", msgId)
 				}
-
-				out <- MsgData{
-					ID:      id,
-					HasSpam: hasSpam,
-				}
-			}()
-		}
+			}
+		}(wg, in, out)
 	}
+	wg.Wait()
 }
 
 func CombineResults(in, out chan interface{}) {
 	// in - MsgData
 	// out - string
-	msgDatas := make(msgDatas, 0)
+	msgDatas := make(msgDataSlice, 0)
 	for msgDataInterface := range in {
 		msgDatas = append(msgDatas, msgDataInterface.(MsgData))
 	}
@@ -109,12 +124,12 @@ func CombineResults(in, out chan interface{}) {
 	}
 }
 
-type msgDatas []MsgData
+type msgDataSlice []MsgData
 
 // implementation of Sort interface for []MsgData
-func (m msgDatas) Len() int      { return len(m) }
-func (m msgDatas) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
-func (m msgDatas) Less(i, j int) bool {
+func (m msgDataSlice) Len() int      { return len(m) }
+func (m msgDataSlice) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m msgDataSlice) Less(i, j int) bool {
 	if m[i].HasSpam == m[j].HasSpam {
 		return m[i].ID < m[j].ID
 	}
