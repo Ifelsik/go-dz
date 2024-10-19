@@ -9,7 +9,7 @@ import (
 func RunPipeline(cmds ...cmd) {
 	in := make(chan interface{})
 	wg := &sync.WaitGroup{}
-	for _, foo := range cmds {
+	for _, function := range cmds {
 		out := make(chan interface{})
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, cmd cmd, in, out chan interface{}) {
@@ -18,7 +18,7 @@ func RunPipeline(cmds ...cmd) {
 			// cmd can be blocked by channel reciving or sending operation inside itself
 			// in this case whole goroutine blocks
 			cmd(in, out)
-		}(wg, foo, in, out)
+		}(wg, function, in, out)
 		in = out
 	}
 	wg.Wait()
@@ -91,19 +91,22 @@ func CheckSpam(in, out chan interface{}) {
 			defer wg.Done()
 
 			for msgId := range in {
-				if id, ok := msgId.(MsgID); ok {
-					hasSpam, err := HasSpam(id)
+				id, ok := msgId.(MsgID); 
 
-					if err != nil {
-						fmt.Printf("in CheckSpam got %v", err)
-					}
-
-					out <- MsgData{
-						ID:      id,
-						HasSpam: hasSpam,
-					}
-				} else {
+				if !ok {
 					fmt.Printf("in CheckSpam can't convert msgIds; got %T", msgId)
+					continue
+				}
+
+				hasSpam, err := HasSpam(id)
+
+				if err != nil {
+					fmt.Printf("in CheckSpam got %v", err)
+				}
+
+				out <- MsgData{
+					ID:      id,
+					HasSpam: hasSpam,
 				}
 			}
 		}(wg, in, out)
